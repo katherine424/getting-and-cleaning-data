@@ -23,53 +23,43 @@ if(!file.exists(filename))
 #step 2 read data 
 ###################################################
 
+# don't convert text labels to factors using as.is = true
+features<-read.table(file.path(filename,"features.txt"),as.is = TRUE)
+#step find the index for mean and std
+coltokeep <- grep("mean|std|activity|subject", features[,2])
+# read only mean and std
 trainsubject <-read.table(file.path(filename,"train","subject_train.txt"))
-trainvalue <- read.table(file.path(filename,"train","x_train.txt"))
+trainvalue <- read.table(file.path(filename,"train","x_train.txt"))[,coltokeep]
 trainactivity <- read.table (file.path(filename,"train","y_train.txt"))
 
 testsubject <-read.table(file.path(filename,"test","subject_test.txt"))
-testvalue <- read.table(file.path(filename,"test","x_test.txt"))
+testvalue <- read.table(file.path(filename,"test","x_test.txt"))[,coltokeep]
 testactivity <- read.table (file.path(filename,"test","y_test.txt"))
 
+#read activity_labels 
 activity_labels <- read.table (file.path(filename,"activity_labels.txt"))
-
-# don't convert text labels to factors using as.is = true
-features<-read.table(file.path(filename,"features.txt"),as.is = TRUE)
 
 #####################################################
 #step 3 combine train and test data
 #####################################################
-
-
 activity <-rbind (
-      cbind(trainvalue,trainactivity,trainsubject),
-      cbind(testvalue,testactivity,testsubject)
+      cbind(trainactivity,trainsubject,trainvalue),
+      cbind(testactivity,testsubject,testvalue)
 )
 ##remove individual table to save memory 
 rm(trainsubject,trainactivity,trainvalue,testactivity,testvalue,testsubject)
-
-colnames(activity) <- c ( features[,2],"activity","subject")
-
-
-########################################################
-#step 4 keep only mean and std
-########################################################
-
-coltokeep <- grepl("mean|std|activity|subject", colnames(activity))
-
-activity<-activity[,coltokeep]
 
 #########################################################
 #step5 using descriptive activity names 
 #########################################################
 
-activity$activity <- factor(activity$activity,levels = activity_labels[,1],labels = activity_labels[,2])
+activity[,1] <- factor(activity[,1],levels = activity_labels[,1],labels = activity_labels[,2])
 
 #########################################################
 #step6 using descriptive colnames 
 #########################################################
 
-activitycols<-colnames(activity)
+activitycols<-features[coltokeep,2]
 
 activitycols <-gsub("[()-]", "",activitycols)
 activitycols<-gsub("mean","Mean",activitycols)
@@ -81,7 +71,7 @@ activitycols <-gsub("BodyBody","Body",activitycols)
 activitycols <-gsub("^t","TimeDomain",activitycols)
 activitycols <-gsub("^f","FrequencyDomain",activitycols)
 
-colnames(activity) <- activitycols
+colnames(activity) <- c("activity","subject",activitycols)
 
 #########################################################
 #step7-1 creat a second independent tidy set using dplyr library 
